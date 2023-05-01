@@ -3,10 +3,8 @@ import pandas as pd
 import datetime as dt
 
 accounting = open("accounting.xlsx", "rb")
-projects = pd.read_excel(accounting, sheet_name="Open Jobs")
+jobs = pd.read_excel(accounting, sheet_name="Open Jobs")
 ic = pd.read_excel(accounting, sheet_name="WSP-IC2018")
-print("THIS IS CHANGED")
-mileageRate = 0.655
 
 #---Find contractor---#
 contractor = pd.DataFrame()
@@ -17,65 +15,42 @@ while contractor.empty:
     if contractor.empty:
         print("Contractor not found...")
 
-#---Monthly entry---#
 numWeeks = int(sys.argv[1])
 weekEnding = (dt.datetime(int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])) + dt.timedelta(days=6))
 currentWeek = 1
 
 while numWeeks > 0:
-    #---Weekly entry---# 
     currentEntry = 1
     weeklyEntries = int(input(f"Number of entries for week {currentWeek}: "))
 
-    
     while weeklyEntries > 0:    
-        project = pd.DataFrame()
+        job = pd.DataFrame()
         isOpen = True
         
-        projectNumber = "test"#input("Project Number: ")
-        project = projects[projects["JOB NUMBER"] == projectNumber]
+        jobNumber = input("Job Number: ")
+        job = jobs[jobs["JOB NUMBER"] == jobNumber]
 
-        if project.empty:
-            print(f"Project {projectNumber} not found")
+        if job.empty:
+            print(f"Job {jobNumber} not found")
             isOpen = False
-            project = pd.DataFrame([{"JOB NUMBER": projectNumber}])
+            project = pd.DataFrame([{"JOB NUMBER": jobNumber}])
 
         hours = float(input("Hours: "))
         miles = float(input("Miles: "))
 
-        otHours = 0
-        regHours = 0
-        totalHours = 64#weeklyTotals["Regular Hours"].loc[0]
-        currentHours = totalHours + hours
-        rate = contractor["Rate"]
-        subtotal = 0
-
-        if totalHours > 40:
-            otHours = hours
-        elif currentHours > 40:
-            otHours = currentHours - 40
-            regHours = hours - otHours
-        elif currentHours <= 40:
-            regHours = hours
-
-        subtotal += regHours * rate
-        subtotal += otHours * (rate * 1.5)
-        subtotal += miles * mileageRate
-
-
         with pd.ExcelWriter("output.xlsx", mode="a", if_sheet_exists="overlay") as writer:
             entry = {"Name": contractor["Name"].iloc[0],
             "Company": contractor["Company"].iloc[0],
+            "Rate": contractor["Rate"].iloc[0],
+            "Multiplier": contractor["Multiplier"].iloc[0],
             "Week": "Week " + str(currentWeek),
             "Date": weekEnding.strftime("%b %d %Y"),
-            "Project": project["JOB NUMBER"].iloc[0],
+            "Job": job["JOB NUMBER"].iloc[0],
             "Open": isOpen,
-            "Regular Hours": regHours,
-            "Overtime Hours": otHours,
+            "Hours": hours,
             "Miles": miles,
-            "Total": subtotal}
-
-            pd.DataFrame(entry).to_excel(writer, startrow=writer.sheets["Sheet1"].max_row, header=False, index=False)
+            "Total": None}
+            pd.DataFrame([entry]).to_excel(writer, sheet_name="Entries", startrow=writer.sheets["Entries"].max_row, header=False, index=False)
          
         weeklyEntries -= 1
         currentEntry += 1

@@ -2,8 +2,8 @@ import pandas as pd
 
 output = open("output.xlsx", "rb")
 
-a = pd.read_excel(output, sheet_name="Sheet1")
-b = pd.read_excel(output, sheet_name="Sheet3")
+a = pd.read_excel(output, sheet_name="Entries")
+b = pd.read_excel(output, sheet_name="Monthly")
 
 print(a.groupby(["Project"]).sum(numeric_only=True))
 print(b.groupby(["Company"]).sum(numeric_only=True))
