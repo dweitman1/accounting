@@ -6,15 +6,17 @@ mileageRate = 0.655
 output = open("output.xlsx", "rb")
 
 a = pd.read_excel(output, sheet_name="Entries")
-a["Totals"] = (a["Hours"] * a["Rate"] * a["Multiplier"]) + (mileageRate * a["Miles"])
+a["Total"] = (a["Hours"] * a["Rate"] * a["Multiplier"]) + (mileageRate * a["Miles"])
+
+jobSummary = a.drop(columns=["Rate", "Multiplier"]).groupby(["Job"]).sum(numeric_only=True)
+jobSummary.loc[jobSummary["Open"] > 0, "Open"] = "Open"
+jobSummary.loc[jobSummary["Open"] == 0, "Open"] = "Closed"
 
 weeklySummary = a.groupby(["Company", "Name", "Week"])[["Hours", "Miles"]].sum(numeric_only=True)
 regHours = np.where(weeklySummary["Hours"] > 40, 40, weeklySummary["Hours"])
 otHours = np.where(weeklySummary["Hours"] > 40, weeklySummary["Hours"] - 40, 0)
 weeklySummary.insert(1, "Reg Hours", regHours)
 weeklySummary.insert(2, "OT Hours", otHours)
-
-
 
 monthlySummary = a.groupby(["Company", "Name", "Rate", "Multiplier"])[["Hours", "Miles"]].sum(numeric_only=True)
 monthlySummary = monthlySummary.reset_index(level=["Rate", "Multiplier"])
@@ -26,13 +28,14 @@ monthlySummary["Multiplier Total"] = (monthlySummary["Reg Hours Total"] + monthl
 monthlySummary["Miles Total"] = monthlySummary["Miles"] * mileageRate
 monthlySummary["Total"] = monthlySummary["Multiplier Total"] + monthlySummary["Miles Total"]
 
-
-
 companySummary = monthlySummary.drop(columns=["Rate", "Multiplier"]).groupby(["Company"]).sum(numeric_only=True)
+fees = []
+for i, row in companySummary.iterrows():
+    fees.append(float(input(f"Enter fees for {i}: ")))
+companySummary.insert(8, "Fees", fees)
+companySummary["Total"] += companySummary["Fees"]
 
 totals = companySummary.sum(numeric_only=True)
-
-jobSummary = a.drop(columns=["Rate", "Multiplier"]).groupby(["Job"]).sum(numeric_only=True)
 
 with pd.ExcelWriter(
     "output.xlsx",
@@ -40,7 +43,6 @@ with pd.ExcelWriter(
     engine="openpyxl",
     if_sheet_exists="replace",
 ) as writer:
-    
     a.to_excel(writer, sheet_name="Entries", index=False)
     weeklySummary.to_excel(writer, sheet_name="Weekly")
     monthlySummary.to_excel(writer, sheet_name="Monthly")

@@ -6,6 +6,10 @@ accounting = open("accounting.xlsx", "rb")
 jobs = pd.read_excel(accounting, sheet_name="Open Jobs")
 ic = pd.read_excel(accounting, sheet_name="WSP-IC2018")
 
+currentWeek = 1
+numWeeks = int(sys.argv[1])
+weekEnding = (dt.datetime(int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])) + dt.timedelta(days=6))
+
 #---Find contractor---#
 contractor = pd.DataFrame()
 while contractor.empty:
@@ -15,10 +19,7 @@ while contractor.empty:
     if contractor.empty:
         print("Contractor not found...")
 
-numWeeks = int(sys.argv[1])
-weekEnding = (dt.datetime(int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])) + dt.timedelta(days=6))
-currentWeek = 1
-
+#---Job Entries---#
 while numWeeks > 0:
     currentEntry = 1
     weeklyEntries = int(input(f"Number of entries for week {currentWeek}: "))
@@ -33,7 +34,10 @@ while numWeeks > 0:
         if job.empty:
             print(f"Job {jobNumber} not found")
             isOpen = False
-            project = pd.DataFrame([{"JOB NUMBER": jobNumber}])
+            job = pd.DataFrame([{"JOB NUMBER": jobNumber}])
+            fund = 6
+            activity = 28123
+            facility = 6000
 
         hours = float(input("Hours: "))
         miles = float(input("Miles: "))
@@ -46,6 +50,9 @@ while numWeeks > 0:
             "Week": "Week " + str(currentWeek),
             "Date": weekEnding.strftime("%b %d %Y"),
             "Job": job["JOB NUMBER"].iloc[0],
+            "Fund": fund,
+            "Activity": activity,
+            "Facility": facility,
             "Open": isOpen,
             "Hours": hours,
             "Miles": miles,
