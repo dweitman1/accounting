@@ -35,6 +35,7 @@ for i in companyIndex:
         fees.append(0)
 companySummary.insert(9, "Fees", fees)
 companySummary["Total"] += companySummary["Fees"]
+companySummary.insert(10, "Total-Miles",companySummary["Total"] - companySummary["Miles Total"])
 #companySummary.Total = companySummary.Total.round(2)
 
 #-Totals-#
