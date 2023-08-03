@@ -6,4 +6,4 @@ with pd.ExcelWriter(
     engine="openpyxl",
     if_sheet_exists="replace",
 ) as writer:
-    pd.DataFrame(data={}, columns=["Name", "Company", "Rate", "Week", "Fund", "Activity", "Facility", "Job", "Open", "Hours", "Miles", "Total"]).to_excel(writer, sheet_name="Entries", index=False)
+    pd.DataFrame(data={}, columns=["Name", "Company", "Rate", "Multiplier", "Week", "Fund", "Activity", "Facility", "Job", "Open", "Hours", "Miles", "Total"]).to_excel(writer, sheet_name="Entries", index=False)

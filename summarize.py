@@ -1,13 +1,14 @@
 import sys
 import pandas as pd
 import numpy as np
+import decimal
 
 mileageRate = float(sys.argv[1])
 summary = open("summary.xlsx", "rb")
 a = pd.read_excel(summary, sheet_name="Entries")
 
 #-Summarize per week-#
-weeklySummary = a.groupby(["Company", "Name", "Rate", "Week"], sort=False)[["Hours", "Miles"]].sum(numeric_only=True)
+weeklySummary = a.groupby(["Company", "Name", "Rate", "Multiplier", "Week"], sort=False)[["Hours", "Miles"]].sum(numeric_only=True)
 companyIndex = a.groupby(["Company"], sort=False).count().index.values
 weeklySummary = weeklySummary.reindex(companyIndex, level="Company")
 regHours = np.where(weeklySummary["Hours"] > 40, 40, weeklySummary["Hours"])
@@ -16,27 +17,36 @@ weeklySummary.insert(1, "Reg Hours", regHours)
 weeklySummary.insert(2, "OT Hours", otHours)
 
 #-Summarize per month-#
-monthlySummary = weeklySummary.droplevel(["Week"]).groupby(["Company", "Name", "Rate"], sort=False).sum(numeric_only=True)
-monthlySummary = monthlySummary.reset_index(level=["Rate"])
-monthlySummary["Hours Total"] = monthlySummary["Hours"] * monthlySummary["Rate"]
-monthlySummary["Reg Hours Total"] = monthlySummary["Reg Hours"] * monthlySummary["Rate"]
-monthlySummary["OT Hours Total"] = monthlySummary["OT Hours"] * (monthlySummary["Rate"] * 1.5)
-monthlySummary["OT Premium"] = monthlySummary["OT Hours"] * (monthlySummary["Rate"] * 0.5)
+monthlySummary = weeklySummary.droplevel(["Week"]).groupby(["Company", "Name", "Rate", "Multiplier"], sort=False).sum(numeric_only=True)
+monthlySummary = monthlySummary.reset_index(level=["Rate", "Multiplier"])
+monthlySummary["Hours Total"] = round(monthlySummary["Hours"] * monthlySummary["Rate"], 2) * monthlySummary["Multiplier"]
+#temp = (monthlySummary["Hours Total"] * 100).to_frame()
+#print(type(temp))
+#temp.iloc[:, 0] = temp.iloc[:, 0].apply(
+#  lambda x: decimal.Decimal(x).to_integral_value(rounding=decimal.ROUND_HALF_UP)
+#)
+#monthlySummary["Hours Total"] = (temp / 100)
+#monthlySummary["Hours Total"] = monthlySummary["Hours Total"] * monthlySummary["Multiplier"]
+
+monthlySummary["Reg Hours Total"] = round(monthlySummary["Reg Hours"] * monthlySummary["Rate"], 2) * monthlySummary["Multiplier"]
+monthlySummary["OT Hours Total"] = round(monthlySummary["OT Hours"] * monthlySummary["Rate"] * 1.5, 2) * monthlySummary["Multiplier"]
+monthlySummary["OT Premium"] = round(monthlySummary["OT Hours"] * monthlySummary["Rate"] * 0.5, 2) * monthlySummary["Multiplier"]
 monthlySummary["Miles Total"] = monthlySummary["Miles"] * mileageRate
 monthlySummary["Total"] = monthlySummary["Reg Hours Total"] + monthlySummary["OT Hours Total"] + monthlySummary["Miles Total"]
+monthlySummary = monthlySummary.drop(columns=["Multiplier"])
 
 #-Summarize per company-#
 companySummary = monthlySummary.drop(columns=["Rate"]).groupby(["Company"], sort=False).sum(numeric_only=True).reindex(companyIndex, level="Company")
 fees = []
 for i in companyIndex:
     try:
+        
         fees.append(float(input(f"Enter fees for {i}: ")))
     except:
         fees.append(0)
-companySummary.insert(9, "Fees", fees)
+companySummary.insert(8, "Fees", fees)
 companySummary["Total"] += companySummary["Fees"]
-companySummary.insert(10, "Total-Miles",companySummary["Total"] - companySummary["Miles Total"])
-#companySummary.Total = companySummary.Total.round(2)
+companySummary.insert(8, "Total-Miles",companySummary["Total"] - companySummary["Miles Total"])
 
 #-Totals-#
 totals = companySummary.sum(numeric_only=True)
@@ -54,7 +64,7 @@ otEntries = otEntries.drop(columns=["Adder", "Divisor"])
 a = a.merge(otEntries, how='left').assign(Total=lambda d: d["Total"].add(d.pop("OT Adder"), fill_value=0))
 
 #-Calculate Job Summary-#
-jobSummary = a.drop(columns=["Rate"]).groupby(["Job", "Fund", "Activity", "Facility"]).sum(numeric_only=True)
+jobSummary = a.drop(columns=["Rate", "Multiplier"]).groupby(["Job", "Fund", "Activity", "Facility"]).sum(numeric_only=True)
 jobSummary.loc[jobSummary["Open"] > 0, "Open"] = "Open"
 jobSummary.loc[jobSummary["Open"] == 0, "Open"] = "Closed"
 jobSummary.loc[("Fees", 6, 75041, 6000), :] = ("Closed", 0, 0, totals["Fees"])
@@ -67,7 +77,7 @@ weeklySummary = weeklySummary.style.set_properties(**style)
 monthlySummary = monthlySummary.style.set_properties(**style)
 companySummary = companySummary.style.set_properties(**style)
 totals = totals.to_frame().style.set_properties(**style)
-jobSummary = jobSummary.style.set_properties(**style)
+jobSummary = jobSummary.drop(columns=["Open", "Hours", "Miles"]).style.set_properties(**style)
 def highlite(s):
     return ["background-color: #fff999" if s_ else None for s_ in s]
 weeklySummary = weeklySummary.apply(highlite, subset=["OT Hours"], axis=1)

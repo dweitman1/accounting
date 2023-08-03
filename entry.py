@@ -7,7 +7,7 @@ def getWeeklyEntries(jobEntries=pd.DataFrame()):
         jobList = pd.read_excel(accounting, sheet_name="Job List")
         jobNumber = input(f"Job Number: ")
         if not jobNumber:                 
-            weeklyEntries = pd.DataFrame(data={}, columns=["Name", "Company", "Rate", "Week", "Fund", "Activity", "Facility", "Job", "Open", "Hours", "Miles", "Total"])
+            weeklyEntries = pd.DataFrame(data={}, columns=["Name", "Company", "Rate", "Multiplier", "Week", "Fund", "Activity", "Facility", "Job", "Open", "Hours", "Miles", "Total"])
             weeklyEntries["Fund"] = jobEntries["Fund"]
             weeklyEntries["Activity"] = jobEntries["Activity"]
             weeklyEntries["Facility"] = jobEntries["Facility"]
@@ -16,6 +16,7 @@ def getWeeklyEntries(jobEntries=pd.DataFrame()):
             weeklyEntries["Name"] = contractor.iloc[0]["Name"]
             weeklyEntries["Company"] = contractor.iloc[0]["Company"]
             weeklyEntries["Rate"] = contractor.iloc[0]["Rate"]
+            weeklyEntries["Multiplier"] = contractor.iloc[0]["Multiplier"]
             return weeklyEntries
         job = pd.DataFrame()
         job = jobList[jobList["Job"] == jobNumber]
@@ -62,12 +63,20 @@ ic = pd.read_excel(accounting, sheet_name=sys.argv[1])
 numWeeks = int(sys.argv[2])
 currentWeek = 1
 
+
+
+
+
+
+
+
+
 #---Get Contractor Data---#
 contractor = pd.DataFrame()
 while contractor.empty:
     contractorName = input("Enter contractor name: ")
     contractor = ic[ic["Name"] == contractorName]
-    contractor = contractor[["Name", "Company", "Rate"]]
+    contractor = contractor[["Name", "Company", "Rate", "Multiplier"]]
     if contractor.empty:
         print("Contractor not found...")
 
